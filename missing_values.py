@@ -37,6 +37,6 @@ dataset.fillna({
 
 
 
-dataset.City = dataset.groupby('State').City.apply(lambda x: x.fillna(x.mode().iloc[0]))
+dataset.City = dataset[['State','City']].groupby('State')['City'].apply(lambda x: x.fillna(x.mode()[0] if not x.mode().empty else "Empty"))
 
 
