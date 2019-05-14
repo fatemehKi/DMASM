@@ -35,7 +35,7 @@ model.fit(X_train,y_train)
 #see performance score
 model.score(X_test,y_test)
 
-#get predicted values
+#get predicted values--- without looking at the y_test
 y_pred = model.predict(X_test)
 
 y_pred = sc_y.inverse_transform(y_pred.reshape(len(y_pred),1)).reshape(len(y_pred))
