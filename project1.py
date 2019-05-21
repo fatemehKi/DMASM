@@ -2,7 +2,7 @@
 """
 Created on Sat May 18 00:48:44 2019
 
-@author: Kian
+@author: Kiaie
 """
 
 import pandas as pd
@@ -154,6 +154,9 @@ df=df1.append(df_s.append(df_st.append(df_w)))
 ###---checking missing number
 df.isnull().sum() #no missing data!! wow
 
+###---correlation nalysis
+corr = df.corr()
+sns.heatmap(abs(corr),annot=True)
 
 
 ###-----encoding and labling
@@ -161,13 +164,9 @@ df.detected_activity = df.detected_activity.map({'bending_1':1,'bending_2':2,'cy
 #dataset=pd.get_dummies(df, columns=['detected_activity'], drop_first=True)
 
 
-df.corrwith(df.detected_activity)
-
-
-
 ###--- seperation of dependent and independent
 X = df.iloc[:,2:7].values
-y = df.iloc[:,7].values
+y = df.iloc[:,-1].values
 
 
 df_2 = pd.DataFrame(np.concatenate((X,y.reshape(len(y),1)),axis=1))
@@ -177,10 +176,41 @@ sns.heatmap(corr,annot=True)
 
 ###---- no need for scaling
 
+
+#Feature Elimination
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import RFE
+adj_R2 = []
+feature_set = []
+max_adj_R2_so_far = 0
+n = len(X)
+k = len(X[0])
+for i in range(1,k+1):
+    selector = RFE(LogisticRegression(), i,verbose=1)
+    selector = selector.fit(X, y)
+    current_R2 = selector.score(X,y)
+    current_adj_R2 = 1-(n-1)*(1-current_R2)/(n-i-1) 
+    adj_R2.append(current_adj_R2)
+    feature_set.append(selector.support_)
+    if max_adj_R2_so_far < current_adj_R2:
+        max_adj_R2_so_far = current_adj_R2
+        selected_features = selector.support_
+        selected_ranking= selector.ranking_
+    print('End of iteration no. {}'.format(i))
+    print('selector support is :', selector.support_)
+    print('selected ranking is ;', selector.ranking_)
+
+selected_ranking       
+X_sub = X[:,selected_features]
+
+
 ###----splitting to test and training
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X,y,random_state=0)
 
+
+
+#Running the model an train it
 from sklearn.linear_model import LogisticRegression
 model = LogisticRegression()
 
@@ -200,20 +230,26 @@ classification_report(y_test,y_pred)
 
 print(classification_report(y_test,y_pred))
 
-from sklearn.feature_selection import RFE
-estimator= LogisticRegression()
 
-feature_set =[]
-accuracies=[]
-max_accuracy_so_far=0
-for i in range(1,len(X[0])+1):
-    selector = RFE(estimator, i, verbose=1 )
-    selector =selector.fit(X,y)
-    current_accuracy=selector.score(X,y)
-    accuracies.append(current_accuracy)
-    feature_set.append(selector.support_)
-    if max_accuracy_so_far<current_accuracy:
-        max_accuracy_so_far=current_accuracy
-        slected_features=selector.support_        
-    print('End of the iteration no.{}'.format(i))
+#4fold model scoring
+scores = []
+max_score = 0
+from sklearn.model_selection import KFold
+kf = KFold(n_splits=4,random_state=0,shuffle=True)
+for train_index, test_index in kf.split(X):
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+    current_model = LogisticRegression()
+    #train the model
+    current_model.fit(X_train,y_train)
+    #see performance score
+    current_score = model.score(X_test,y_test)
+    scores.append(current_score)
+    if max_score < current_score:
+        max_score = current_score
+        best_model = current_model
+
+
+best_model.intercept_
+best_model.coef_
 
