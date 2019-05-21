@@ -2,37 +2,40 @@
 """
 Created on Mon May 20 03:38:53 2019
 
-@author: Kian
+@author: Kiaie
 """
 
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
-dataset=pd.read_csv('Lego_set.csv')
+###--- readig data set
+ds1=pd.read_csv('Lego_set.csv')
 
-###---checking missing number
-dataset.isnull().sum() 
-dataset=dataset.dropna(how='all')
-dataset.fillna(method='bfill', inplace=True)
-ds=dataset.drop(['ages'], axis=1)
-
-
-dataset_2 = pd.get_dummies(ds,columns=['review_difficulty', 'country' ],drop_first=True)
-dataset_3 = dataset_2.drop(['prod_desc', 'prod_long_desc', 'set_name', 'theme_name', 'prod_id'], axis=1)
-
-X=dataset_3.loc[:, (dataset_3.columns != 'list_price')].values
-y=dataset_3.list_price.values
-
-###---
-###---
-from sklearn.preprocessing import StandardScaler
-sc_X= StandardScaler()
-sc_y=StandardScaler()
-
-X=sc_X.fit_transform(X)
-y=sc_y.fit_transform(y.reshape(len(y),1)).reshape(len(y))
+###--- dropping unnecessary coloumns
+ds2 = ds1.drop(['prod_desc', 'prod_long_desc', 'set_name', 'theme_name', 'prod_id', 'ages'], axis=1)
 
 
+###--- handling missing values
+ds2.isnull().sum() 
+ds3=ds2.dropna(how='all')
+ds3.fillna(method='bfill', inplace=True)
+
+###---- correlation analysis
+cor = ds3.corr()
+corr = abs(cor)
+sns.heatmap(corr,annot=True)
+
+
+###--- encoding categorical data
+dataset = pd.get_dummies(ds3,columns=['review_difficulty', 'country' ],drop_first=True)
+
+
+###--- data and target sepertion
+X=dataset.loc[:, (dataset.columns != 'list_price')].values
+y=dataset.list_price.values
+
+###---Scaling
 from sklearn.preprocessing import StandardScaler
 sc_X = StandardScaler()
 sc_y = StandardScaler()
@@ -58,17 +61,18 @@ for i in range(1,k+1):
     if max_adj_R2_so_far < current_adj_R2:
         max_adj_R2_so_far = current_adj_R2
         selected_features = selector.support_
+        selected_ranking= selector.ranking_
     print('End of iteration no. {}'.format(i))
-        
+    print('selector support is :', selector.support_)
+    print('selected ranking is ;', selector.ranking_)
+
+selected_ranking       
 X_sub = X[:,selected_features]
+#X_sub = X[:,:]
 
-
-
-#splot into train and test set
-#if we don't get the test size the default is 25% of the data for the test
+#split into train and test set.. the default is 25% of the data for the test
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test=train_test_split(X,y, random_state=0)
-
 
 #import model
 from sklearn.linear_model import LinearRegression 
@@ -77,9 +81,6 @@ model = LinearRegression()
 #train the model
 model.fit(X_train,y_train)
 
-
-#train the model
-model.fit(X_train,y_train)
 
 #see performance score
 model.score(X_test,y_test)
@@ -95,3 +96,34 @@ y_test = sc_y.inverse_transform(y_test.reshape(len(y_test),1)).reshape(len(y_tes
 from sklearn.metrics import mean_squared_error #SSE/n
 meansqerr = mean_squared_error(y_test,y_pred)
 print(meansqerr)
+
+#analysis of the individual co-efficients' values
+import statsmodels.api as sm
+X_modified = sm.add_constant(X_train)
+lin_reg = sm.OLS(y_train,X_modified)
+result = lin_reg.fit()
+print(result.summary())
+
+
+
+#4fold R2 value
+scores = []
+max_score = 0
+from sklearn.model_selection import KFold
+kf = KFold(n_splits=4,random_state=0,shuffle=True)
+for train_index, test_index in kf.split(X):
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+    current_model = LinearRegression()
+    #train the model
+    current_model.fit(X_train,y_train)
+    #see performance score
+    current_score = model.score(X_test,y_test)
+    scores.append(current_score)
+    if max_score < current_score:
+        max_score = current_score
+        best_model = current_model
+
+
+best_model.intercept_
+best_model.coef_
