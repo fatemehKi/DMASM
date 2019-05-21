@@ -93,7 +93,7 @@ y_test = sc_y.inverse_transform(y_test.reshape(len(y_test),1)).reshape(len(y_tes
 
 
 
-from sklearn.metrics import mean_squared_error #SSE/n
+from sklearn.metrics import mean_squared_error #SSE/n (MSE)
 meansqerr = mean_squared_error(y_test,y_pred)
 print(meansqerr)
 
