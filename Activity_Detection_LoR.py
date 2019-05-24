@@ -185,7 +185,7 @@ df.detected_activity = df.detected_activity.map({'bending_1':1,'bending_2':2,'cy
 
 
 ###---- no need for scaling
-
+ 
 
 #Feature Elimination
 from sklearn.linear_model import LogisticRegression
