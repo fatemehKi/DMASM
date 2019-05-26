@@ -263,4 +263,4 @@ for train_index, test_index in kf.split(X_sub):
 
 best_model.intercept_
 best_model.coef_
-
+ 
